@@ -1,7 +1,10 @@
+// @ts-check
 const xml = require('fast-xml-parser')
 const fs = require('fs-extra')
 const path = require('path')
 const { SingleBar } = require('cli-progress')
+
+const argv = require('yargs').argv
 
 const root = path.resolve(__dirname, '..')
 const temp = path.join(root, 'Temp')
@@ -9,21 +12,15 @@ const input = path.join(temp, 'train_data_export')
 const output = path.join(temp, `data_${Date.now()}`)
 const output_img = path.join(output, 'img')
 const bar = new SingleBar({})
+const set_classes = new Set()
 
 fs.ensureDirSync(output)
 fs.ensureDirSync(output_img)
 
-try {
-  const files = fs.readdirSync(input)
-  const set1 = new Set(files)
-  const set2 = new Set()
-  const set3 = new Set()
-
-  files.forEach(file => set2.add(path.basename(file, path.extname(file))))
-
-  const names = [...set2].filter(x => set1.has(x + '.jpg') && set1.has(x + '.xml'))
-  console.log('Total images', names.length)
-
+/**
+ * @param {string[]} names
+ */
+function generateLabeling(names) {
   const result = []
 
   bar.start(names.length, 0)
@@ -38,7 +35,7 @@ try {
     if ('object' in o.annotation) {
       const objects = o.annotation.object instanceof Array ? o.annotation.object : [o.annotation.object]
       for (const object of objects) {
-        set3.add(object.name)
+        set_classes.add(object.name)
         result.push(`${img_out},${object.bndbox.xmin},${object.bndbox.ymin},${object.bndbox.xmax},${object.bndbox.ymax},${object.name}`)
       }
     } else {
@@ -48,12 +45,36 @@ try {
   }
 
   bar.stop()
-  fs.writeFileSync(path.join(output, 'labels.csv'), result.join('\n'))
+  return result.join('\n')
+}
 
-  const classes = [...set3]
-  result.length = 0
+function generateClassMapping() {
+  const classes = [...set_classes]
+  const result = []
   classes.forEach((c, i) => result.push(`${c},${i}`))
-  fs.writeFileSync(path.join(output, 'classes.csv'), result.join('\n'))
+  return result.join('\n')
+}
+
+try {
+  const files = fs.readdirSync(input)
+  const set1 = new Set(files)
+  const set2 = new Set()
+
+  files.forEach(file => set2.add(path.basename(file, path.extname(file))))
+
+  const names = [...set2].filter(x => set1.has(x + '.jpg') && set1.has(x + '.xml'))
+  console.log('Total images', names.length)
+  // @ts-ignore
+  const val = 'val' in argv ? parseFloat(argv.val) : 1
+  const data_count = Math.floor(val * names.length)
+  const val_count = names.length - data_count
+  console.log(`Data / Val = ${data_count} / ${val_count}`)
+  const data = names.splice(0, data_count)
+  fs.writeFileSync(path.join(output, 'labels.csv'), generateLabeling(data))
+  if (val_count > 0) {
+    fs.writeFileSync(path.join(output, 'val.csv'), generateLabeling(names))
+  }
+  fs.writeFileSync(path.join(output, 'classes.csv'), generateClassMapping())
 } catch (e) {
   console.error(e)
   fs.removeSync(output)

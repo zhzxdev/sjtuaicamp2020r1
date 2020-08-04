@@ -108,7 +108,6 @@ datasets/
 logs/
 checkpoints/
 *.npy
-!utils/compute_overlap.cpython-36m-x86_64-linux-gnu.so
 tests/
 *test-dev*
 val2017*
