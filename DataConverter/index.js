@@ -17,6 +17,7 @@ try {
   const files = fs.readdirSync(input)
   const set1 = new Set(files)
   const set2 = new Set()
+  const set3 = new Set()
 
   files.forEach(file => set2.add(path.basename(file, path.extname(file))))
 
@@ -32,20 +33,27 @@ try {
     const xml_name = name + '.xml'
     const img_name = name + '.jpg'
     const o = xml.parse(fs.readFileSync(path.join(input, xml_name)).toString())
-    fs.copyFileSync(path.join(input, img_name), path.join(output, 'img', img_name))
+    const img_out = path.join(output, 'img', img_name)
+    fs.copyFileSync(path.join(input, img_name), img_out)
     if ('object' in o.annotation) {
       const objects = o.annotation.object instanceof Array ? o.annotation.object : [o.annotation.object]
       for (const object of objects) {
-        result.push(`./img/${img_name},${object.bndbox.xmin},${object.bndbox.ymin},${object.bndbox.xmax},${object.bndbox.ymax},${object.name}`)
+        set3.add(object.name)
+        result.push(`${img_out},${object.bndbox.xmin},${object.bndbox.ymin},${object.bndbox.xmax},${object.bndbox.ymax},${object.name}`)
       }
     } else {
-      result.push(`./img/${img_name},,,,,`)
+      result.push(`${img_out},,,,,`)
     }
     bar.increment(1)
   }
 
   bar.stop()
   fs.writeFileSync(path.join(output, 'labels.csv'), result.join('\n'))
+
+  const classes = [...set3]
+  result.length = 0
+  classes.forEach((c, i) => result.push(`${c},${i}`))
+  fs.writeFileSync(path.join(output, 'classes.csv'), result.join('\n'))
 } catch (e) {
   console.error(e)
   fs.removeSync(output)
