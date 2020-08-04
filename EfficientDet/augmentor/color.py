@@ -150,29 +150,3 @@ class VisualEffect:
         else:
             image = solarize(image, prob=self.solarize_prob, threshold=self.solarize_threshold)
         return image
-
-
-if __name__ == '__main__':
-    from generators.pascal import PascalVocGenerator
-    import cv2
-
-    train_generator = PascalVocGenerator(
-        'datasets/VOC0712',
-        'trainval',
-        skip_difficult=True,
-        anchors_path='voc_anchors_416.txt',
-        batch_size=1
-    )
-    visual_effect = VisualEffect()
-    for i in range(train_generator.size()):
-        image = train_generator.load_image(i)
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        annotations = train_generator.load_annotations(i)
-        boxes = annotations['bboxes']
-        for box in boxes.astype(np.int32):
-            cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 2)
-        src_image = image.copy()
-        image = visual_effect(image)
-        cv2.namedWindow('image', cv2.WINDOW_NORMAL)
-        cv2.imshow('image', np.concatenate([src_image, image], axis=1))
-        cv2.waitKey(0)

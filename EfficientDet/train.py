@@ -91,13 +91,6 @@ def create_callbacks(training_model, prediction_model, validation_generator, arg
         callbacks.append(tensorboard_callback)
 
     if args.evaluation and validation_generator:
-        if args.dataset_type == 'coco':
-            from eval.coco import Evaluate
-            # use prediction model for evaluation
-            evaluation = Evaluate(validation_generator, prediction_model, tensorboard=tensorboard_callback)
-        else:
-            from eval.pascal import Evaluate
-            evaluation = Evaluate(validation_generator, prediction_model, tensorboard=tensorboard_callback)
         callbacks.append(evaluation)
 
     # save the model
@@ -155,25 +148,7 @@ def create_generators(args):
         misc_effect = None
         visual_effect = None
 
-    if args.dataset_type == 'pascal':
-        from generators.pascal import PascalVocGenerator
-        train_generator = PascalVocGenerator(
-            args.pascal_path,
-            'trainval',
-            skip_difficult=True,
-            misc_effect=misc_effect,
-            visual_effect=visual_effect,
-            **common_args
-        )
-
-        validation_generator = PascalVocGenerator(
-            args.pascal_path,
-            'val',
-            skip_difficult=True,
-            shuffle_groups=False,
-            **common_args
-        )
-    elif args.dataset_type == 'csv':
+    if args.dataset_type == 'csv':
         from generators.csv_ import CSVGenerator
         train_generator = CSVGenerator(
             args.annotations_path,
@@ -192,24 +167,6 @@ def create_generators(args):
             )
         else:
             validation_generator = None
-    elif args.dataset_type == 'coco':
-        # import here to prevent unnecessary dependency on cocoapi
-        from generators.coco import CocoGenerator
-        train_generator = CocoGenerator(
-            args.coco_path,
-            'train2017',
-            misc_effect=misc_effect,
-            visual_effect=visual_effect,
-            group_method='random',
-            **common_args
-        )
-
-        validation_generator = CocoGenerator(
-            args.coco_path,
-            'val2017',
-            shuffle_groups=False,
-            **common_args
-        )
     else:
         raise ValueError('Invalid data type received: {}'.format(args.dataset_type))
 
@@ -246,12 +203,6 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description='Simple training script for training a RetinaNet network.')
     subparsers = parser.add_subparsers(help='Arguments for specific dataset types.', dest='dataset_type')
     subparsers.required = True
-
-    coco_parser = subparsers.add_parser('coco')
-    coco_parser.add_argument('coco_path', help='Path to dataset directory (ie. /tmp/COCO).')
-
-    pascal_parser = subparsers.add_parser('pascal')
-    pascal_parser.add_argument('pascal_path', help='Path to dataset directory (ie. /tmp/VOCdevkit).')
 
     csv_parser = subparsers.add_parser('csv')
     csv_parser.add_argument('annotations_path', help='Path to CSV file containing annotations for training.')
@@ -363,8 +314,8 @@ def main(args=None):
         raise ValueError('When you have no validation data, you should not specify --compute-val-loss.')
 
     # start training
-    return model.fit_generator(
-        generator=train_generator,
+    return model.fit(
+        train_generator,
         steps_per_epoch=args.steps,
         initial_epoch=0,
         epochs=args.epochs,
