@@ -1,0 +1,8 @@
+train: ../ds_yolo/images/train
+val: ../ds_yolo/images/val
+
+# number of classes
+nc: 6
+
+# class names
+names: ['red_stop', 'green_go', 'yellow_back', 'pedestrian_crossing', 'speed_limited', 'speed_unlimited']
