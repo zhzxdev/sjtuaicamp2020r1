@@ -22,7 +22,6 @@ class Generator(keras.utils.Sequence):
             group_method='random',  # one of 'none', 'random', 'ratio'
             shuffle_groups=True,
             detect_text=False,
-            detect_quadrangle=False,
     ):
         """
         Initialize Generator object.
@@ -39,7 +38,6 @@ class Generator(keras.utils.Sequence):
         self.group_method = group_method
         self.shuffle_groups = shuffle_groups
         self.detect_text = detect_text
-        self.detect_quadrangle = detect_quadrangle
         self.image_size = image_sizes[phi]
         self.groups = None
         self.anchor_parameters = AnchorParameters.default if not self.detect_text else AnchorParameters(
@@ -285,8 +283,6 @@ class Generator(keras.utils.Sequence):
 
         # apply resizing to annotations too
         annotations['bboxes'] *= scale
-        if self.detect_quadrangle:
-            annotations['quadrangles'] *= scale
         return image, annotations
 
     def preprocess_group(self, image_group, annotations_group):
@@ -327,17 +323,6 @@ class Generator(keras.utils.Sequence):
 
     def compute_alphas_and_ratios(self, annotations_group):
         for i, annotations in enumerate(annotations_group):
-            quadrangles = annotations['quadrangles']
-            alphas = np.zeros((quadrangles.shape[0], 4), dtype=np.float32)
-            xmin = np.min(quadrangles, axis=1)[:, 0]
-            ymin = np.min(quadrangles, axis=1)[:, 1]
-            xmax = np.max(quadrangles, axis=1)[:, 0]
-            ymax = np.max(quadrangles, axis=1)[:, 1]
-            # alpha1, alpha2, alpha3, alpha4
-            alphas[:, 0] = (quadrangles[:, 0, 0] - xmin) / (xmax - xmin)
-            alphas[:, 1] = (quadrangles[:, 1, 1] - ymin) / (ymax - ymin)
-            alphas[:, 2] = (xmax - quadrangles[:, 2, 0]) / (xmax - xmin)
-            alphas[:, 3] = (ymax - quadrangles[:, 3, 1]) / (ymax - ymin)
             annotations['alphas'] = alphas
             # ratio
             area1 = 0.5 * alphas[:, 0] * (1 - alphas[:, 3])
@@ -358,8 +343,7 @@ class Generator(keras.utils.Sequence):
             self.anchors,
             image_group,
             annotations_group,
-            num_classes=self.num_classes(),
-            detect_quadrangle=self.detect_quadrangle
+            num_classes=self.num_classes()
         )
         return list(batches_targets)
 
@@ -393,10 +377,6 @@ class Generator(keras.utils.Sequence):
 
         assert len(image_group) != 0
         assert len(image_group) == len(annotations_group)
-
-        if self.detect_quadrangle:
-            # compute alphas and ratio for targets
-            self.compute_alphas_and_ratios(annotations_group)
 
         # compute network inputs
         inputs = self.compute_inputs(image_group, annotations_group)

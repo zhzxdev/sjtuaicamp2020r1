@@ -76,10 +76,6 @@ def crop(image, annotations, prob=0.5):
         image = image[random_y1:random_y2, random_x1:random_x2]
         bboxes[:, [0, 2]] = bboxes[:, [0, 2]] - random_x1
         bboxes[:, [1, 3]] = bboxes[:, [1, 3]] - random_y1
-        if 'quadrangles' in annotations and annotations['quadrangles'].shape[0] != 0:
-            quadrangles = annotations['quadrangles']
-            quadrangles[:, :, 0] = quadrangles[:, :, 0] - random_x1
-            quadrangles[:, :, 1] = quadrangles[:, :, 1] - random_y1
     else:
         random_x1 = np.random.randint(0, max(w // 8, 1))
         random_y1 = np.random.randint(0, max(h // 8, 1))
@@ -102,15 +98,6 @@ def flipx(image, annotations, prob=0.5):
         tmp = bboxes.copy()
         bboxes[:, 0] = w - 1 - bboxes[:, 2]
         bboxes[:, 2] = w - 1 - tmp[:, 0]
-        if 'quadrangles' in annotations and annotations['quadrangles'].shape[0] != 0:
-            quadrangles = annotations['quadrangles']
-            tmp = quadrangles.copy()
-            quadrangles[:, 0, 0] = w - 1 - quadrangles[:, 0, 0]
-            quadrangles[:, 1, 0] = w - 1 - tmp[:, 3, 0]
-            quadrangles[:, 1, 1] = tmp[:, 3, 1]
-            quadrangles[:, 2, 0] = w - 1 - quadrangles[:, 2, 0]
-            quadrangles[:, 3, 0] = w - 1 - tmp[:, 1, 0]
-            quadrangles[:, 3, 1] = tmp[:, 1, 1]
     return image, annotations
 
 
@@ -127,9 +114,6 @@ def multi_scale(image, annotations, prob=1.):
     bboxes = annotations['bboxes']
     if bboxes.shape[0] != 0:
         annotations['bboxes'] = np.round(bboxes * scale)
-        if 'quadrangles' in annotations and annotations['quadrangles'].shape[0] != 0:
-            quadrangles = annotations['quadrangles']
-            annotations['quadrangles'] = np.round(quadrangles * scale)
     return image, annotations
 
 
@@ -210,10 +194,8 @@ if __name__ == '__main__':
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         annotations = train_generator.load_annotations(i)
         boxes = annotations['bboxes'].astype(np.int32)
-        quadrangles = annotations['quadrangles'].astype(np.int32)
         for box in boxes:
             cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 1)
-        cv2.drawContours(image, quadrangles, -1, (0, 255, 255), 1)
         src_image = image.copy()
         # cv2.namedWindow('src_image', cv2.WINDOW_NORMAL)
         cv2.imshow('src_image', src_image)
@@ -221,10 +203,8 @@ if __name__ == '__main__':
         image, annotations = multi_scale(image, annotations, prob=1.)
         image = image.copy()
         boxes = annotations['bboxes'].astype(np.int32)
-        quadrangles = annotations['quadrangles'].astype(np.int32)
         for box in boxes:
             cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 1)
-        cv2.drawContours(image, quadrangles, -1, (255, 255, 0), 1)
         cv2.namedWindow('image', cv2.WINDOW_NORMAL)
         cv2.imshow('image', image)
         cv2.waitKey(0)

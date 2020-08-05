@@ -51,64 +51,17 @@ def _read_classes(csv_reader):
         try:
             class_name, class_id = row
         except ValueError:
-            raise_from(ValueError('line {}: format should be \'class_name,class_id\''.format(line)), None)
-        class_id = _parse(class_id, int, 'line {}: malformed class ID: {{}}'.format(line))
+            raise_from(
+                ValueError(
+                    'line {}: format should be \'class_name,class_id\''.format(
+                        line)), None)
+        class_id = _parse(class_id, int,
+                          'line {}: malformed class ID: {{}}'.format(line))
 
         if class_name in result:
-            raise ValueError('line {}: duplicate class name: \'{}\''.format(line, class_name))
+            raise ValueError('line {}: duplicate class name: \'{}\''.format(
+                line, class_name))
         result[class_name] = class_id
-    return result
-
-
-def _read_quadrangle_annotations(csv_reader, classes, detect_text=False):
-    """
-    Read annotations from the csv_reader.
-    Args:
-        csv_reader: csv reader of args.annotations_path
-        classes: list[str] all the class names read from args.classes_path
-
-    Returns:
-        result: dict, dict is like {image_path: [{'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-                                     'x3': x3, 'y3': y3, 'x4': x4, 'y4': y4, 'class': class_name}]}
-
-    """
-    result = OrderedDict()
-    for line, row in enumerate(csv_reader, 1):
-        try:
-            img_file, x1, y1, x2, y2, x3, y3, x4, y4, class_name = row[:10]
-            if img_file not in result:
-                result[img_file] = []
-
-            # If a row contains only an image path, it's an image without annotations.
-            if (x1, y1, x2, y2, x3, y3, x4, y4, class_name) == ('', '', '', '', '', '', '', '', ''):
-                continue
-
-            x1 = _parse(x1, int, 'line {}: malformed x1: {{}}'.format(line))
-            y1 = _parse(y1, int, 'line {}: malformed y1: {{}}'.format(line))
-            x2 = _parse(x2, int, 'line {}: malformed x2: {{}}'.format(line))
-            y2 = _parse(y2, int, 'line {}: malformed y2: {{}}'.format(line))
-            x3 = _parse(x3, int, 'line {}: malformed x3: {{}}'.format(line))
-            y3 = _parse(y3, int, 'line {}: malformed y3: {{}}'.format(line))
-            x4 = _parse(x4, int, 'line {}: malformed x4: {{}}'.format(line))
-            y4 = _parse(y4, int, 'line {}: malformed y4: {{}}'.format(line))
-
-            # check if the current class name is correctly present
-            if detect_text:
-                if class_name == '###':
-                    continue
-                else:
-                    class_name = 'text'
-
-            if class_name not in classes:
-                raise ValueError(f'line {line}: unknown class name: \'{class_name}\' (classes: {classes})')
-
-            result[img_file].append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-                                     'x3': x3, 'y3': y3, 'x4': x4, 'y4': y4, 'class': class_name})
-        except ValueError:
-            raise_from(ValueError(
-                f'line {line}: format should be \'img_file,x1,y1,x2,y2,x3,y3,x4,y4,class_name\' or \'img_file,,,,,\''),
-                None)
-
     return result
 
 
@@ -140,13 +93,22 @@ def _read_annotations(csv_reader, classes):
             y2 = _parse(y2, int, 'line {}: malformed y2: {{}}'.format(line))
 
             if class_name not in classes:
-                raise ValueError(f'line {line}: unknown class name: \'{class_name}\' (classes: {classes})')
+                raise ValueError(
+                    f'line {line}: unknown class name: \'{class_name}\' (classes: {classes})'
+                )
 
-            result[img_file].append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'class': class_name})
+            result[img_file].append({
+                'x1': x1,
+                'y1': y1,
+                'x2': x2,
+                'y2': y2,
+                'class': class_name
+            })
         except ValueError:
-            raise_from(ValueError(
-                f'line {line}: format should be \'img_file,x1,y1,x2,y2,class_name\' or \'img_file,,,,,\''),
-                None)
+            raise_from(
+                ValueError(
+                    f'line {line}: format should be \'img_file,x1,y1,x2,y2,class_name\' or \'img_file,,,,,\''
+                ), None)
 
     return result
 
@@ -169,16 +131,12 @@ class CSVGenerator(Generator):
 
     See https://github.com/fizyr/keras-retinanet#csv-datasets for more information.
     """
-
-    def __init__(
-            self,
-            csv_data_file,
-            csv_class_file,
-            base_dir=None,
-            detect_quadrangle=False,
-            detect_text=False,
-            **kwargs
-    ):
+    def __init__(self,
+                 csv_data_file,
+                 csv_class_file,
+                 base_dir=None,
+                 detect_text=False,
+                 **kwargs):
         """
         Initialize a CSV data generator.
 
@@ -191,7 +149,6 @@ class CSVGenerator(Generator):
         self.image_names = []
         self.image_data = {}
         self.base_dir = base_dir
-        self.detect_quadrangle = detect_quadrangle
         self.detect_text = detect_text
 
         # Take base_dir from annotations file if not explicitly specified.
@@ -207,7 +164,9 @@ class CSVGenerator(Generator):
                 # class_name --> class_id
                 self.classes = _read_classes(csv.reader(file, delimiter=','))
         except ValueError as e:
-            raise_from(ValueError('invalid CSV class file: {}: {}'.format(csv_class_file, e)), None)
+            raise_from(
+                ValueError('invalid CSV class file: {}: {}'.format(
+                    csv_class_file, e)), None)
 
         self.labels = {}
         # class_id --> class_name
@@ -218,16 +177,15 @@ class CSVGenerator(Generator):
         try:
             with _open_for_csv(csv_data_file) as file:
                 # {'img_path1':[{'x1':xx,'y1':xx,'x2':xx,'y2':xx,'x3':xx,'y3':xx,'x4':xx,'y4':xx, 'class':xx}...],...}
-                if self.detect_quadrangle:
-                    self.image_data = _read_quadrangle_annotations(csv.reader(file, delimiter=','), self.classes,
-                                                                   self.detect_text)
-                else:
-                    self.image_data = _read_annotations(csv.reader(file, delimiter=','), self.classes)
+                self.image_data = _read_annotations(
+                    csv.reader(file, delimiter=','), self.classes)
         except ValueError as e:
-            raise_from(ValueError('invalid CSV annotations file: {}: {}'.format(csv_data_file, e)), None)
+            raise_from(
+                ValueError('invalid CSV annotations file: {}: {}'.format(
+                    csv_data_file, e)), None)
         self.image_names = list(self.image_data.keys())
 
-        super(CSVGenerator, self).__init__(detect_text=detect_text, detect_quadrangle=detect_quadrangle, **kwargs)
+        super(CSVGenerator, self).__init__(detect_text=detect_text, **kwargs)
 
     def size(self):
         """
@@ -292,13 +250,14 @@ class CSVGenerator(Generator):
         Load annotations for an image_index.
         """
         path = self.image_names[image_index]
-        annotations = {'labels': np.empty((0,), dtype=np.int32),
-                       'bboxes': np.empty((0, 4), dtype=np.float32),
-                       'quadrangles': np.empty((0, 4, 2), dtype=np.float32),
-                       }
+        annotations = {
+            'labels': np.empty((0, ), dtype=np.int32),
+            'bboxes': np.empty((0, 4), dtype=np.float32),
+        }
 
         for idx, annot in enumerate(self.image_data[path]):
-            annotations['labels'] = np.concatenate((annotations['labels'], [self.name_to_label(annot['class'])]))
+            annotations['labels'] = np.concatenate(
+                (annotations['labels'], [self.name_to_label(annot['class'])]))
             annotations['bboxes'] = np.concatenate((annotations['bboxes'], [[
                 float(annot['x1']),
                 float(annot['y1']),

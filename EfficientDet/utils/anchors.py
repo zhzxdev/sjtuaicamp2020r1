@@ -15,11 +15,11 @@ class AnchorParameters:
         ratios : List of ratios to use per location in a feature map.
         scales : List of scales to use per location in a feature map.
     """
-
-    def __init__(self, sizes=(32, 64, 128, 256, 512),
+    def __init__(self,
+                 sizes=(32, 64, 128, 256, 512),
                  strides=(8, 16, 32, 64, 128),
                  ratios=(1, 0.5, 2),
-                 scales=(2 ** 0, 2 ** (1. / 3.), 2 ** (2. / 3.))):
+                 scales=(2**0, 2**(1. / 3.), 2**(2. / 3.))):
         self.sizes = sizes
         self.strides = strides
         self.ratios = np.array(ratios, dtype=keras.backend.floatx())
@@ -37,18 +37,18 @@ AnchorParameters.default = AnchorParameters(
     strides=[8, 16, 32, 64, 128],
     # ratio=h/w
     ratios=np.array([1, 0.5, 2], keras.backend.floatx()),
-    scales=np.array([2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)], keras.backend.floatx()),
+    scales=np.array([2**0, 2**(1.0 / 3.0), 2**(2.0 / 3.0)],
+                    keras.backend.floatx()),
 )
 
 
 def anchor_targets_bbox(
-        anchors,
-        image_group,
-        annotations_group,
-        num_classes,
-        negative_overlap=0.4,
-        positive_overlap=0.5,
-        detect_quadrangle=False
+    anchors,
+    image_group,
+    annotations_group,
+    num_classes,
+    negative_overlap=0.4,
+    positive_overlap=0.5,
 ):
     """
     Generate anchor targets for bbox detection.
@@ -72,30 +72,31 @@ def anchor_targets_bbox(
                       anchor states (-1 for ignore, 0 for bg, 1 for fg).
     """
 
-    assert (len(image_group) == len(annotations_group)), "The length of the images and annotations need to be equal."
-    assert (len(annotations_group) > 0), "No data received to compute anchor targets for."
+    assert (len(image_group) == len(annotations_group)
+            ), "The length of the images and annotations need to be equal."
+    assert (len(annotations_group) >
+            0), "No data received to compute anchor targets for."
     for annotations in annotations_group:
         assert ('bboxes' in annotations), "Annotations should contain bboxes."
         assert ('labels' in annotations), "Annotations should contain labels."
 
     batch_size = len(image_group)
 
-    if detect_quadrangle:
-        regression_batch = np.zeros((batch_size, anchors.shape[0], 9 + 1), dtype=np.float32)
-    else:
-        regression_batch = np.zeros((batch_size, anchors.shape[0], 4 + 1), dtype=np.float32)
-    labels_batch = np.zeros((batch_size, anchors.shape[0], num_classes + 1), dtype=np.float32)
+    regression_batch = np.zeros((batch_size, anchors.shape[0], 4 + 1),
+                                dtype=np.float32)
+    labels_batch = np.zeros((batch_size, anchors.shape[0], num_classes + 1),
+                            dtype=np.float32)
 
     # compute labels and regression targets
-    for index, (image, annotations) in enumerate(zip(image_group, annotations_group)):
+    for index, (image,
+                annotations) in enumerate(zip(image_group, annotations_group)):
         if annotations['bboxes'].shape[0]:
             # obtain indices of gt annotations with the greatest overlap
             # argmax_overlaps_inds: id of ground truth box has greatest overlap with anchor
             # (N, ), (N, ), (N, ) N is num_anchors
-            positive_indices, ignore_indices, argmax_overlaps_inds = compute_gt_annotations(anchors,
-                                                                                            annotations['bboxes'],
-                                                                                            negative_overlap,
-                                                                                            positive_overlap)
+            positive_indices, ignore_indices, argmax_overlaps_inds = compute_gt_annotations(
+                anchors, annotations['bboxes'], negative_overlap,
+                positive_overlap)
             labels_batch[index, ignore_indices, -1] = -1
             labels_batch[index, positive_indices, -1] = 1
 
@@ -103,18 +104,19 @@ def anchor_targets_bbox(
             regression_batch[index, positive_indices, -1] = 1
 
             # compute target class labels
-            labels_batch[
-                index, positive_indices, annotations['labels'][argmax_overlaps_inds[positive_indices]].astype(int)] = 1
+            labels_batch[index, positive_indices, annotations['labels'][
+                argmax_overlaps_inds[positive_indices]].astype(int)] = 1
 
-            regression_batch[index, :, :4] = bbox_transform(anchors, annotations['bboxes'][argmax_overlaps_inds, :])
-            if detect_quadrangle:
-                regression_batch[index, :, 4:8] = annotations['alphas'][argmax_overlaps_inds, :]
-                regression_batch[index, :, 8] = annotations['ratios'][argmax_overlaps_inds]
+            regression_batch[index, :, :4] = bbox_transform(
+                anchors, annotations['bboxes'][argmax_overlaps_inds, :])
 
         # ignore anchors outside of image
         if image.shape:
-            anchors_centers = np.vstack([(anchors[:, 0] + anchors[:, 2]) / 2, (anchors[:, 1] + anchors[:, 3]) / 2]).T
-            indices = np.logical_or(anchors_centers[:, 0] >= image.shape[1], anchors_centers[:, 1] >= image.shape[0])
+            anchors_centers = np.vstack([(anchors[:, 0] + anchors[:, 2]) / 2,
+                                         (anchors[:, 1] + anchors[:, 3]) / 2
+                                         ]).T
+            indices = np.logical_or(anchors_centers[:, 0] >= image.shape[1],
+                                    anchors_centers[:, 1] >= image.shape[0])
 
             labels_batch[index, indices, -1] = -1
             regression_batch[index, indices, -1] = -1
@@ -122,12 +124,10 @@ def anchor_targets_bbox(
     return labels_batch, regression_batch
 
 
-def compute_gt_annotations(
-        anchors,
-        annotations,
-        negative_overlap=0.4,
-        positive_overlap=0.5
-):
+def compute_gt_annotations(anchors,
+                           annotations,
+                           negative_overlap=0.4,
+                           positive_overlap=0.5):
     """
     Obtain indices of gt annotations with the greatest overlap.
 
@@ -143,7 +143,8 @@ def compute_gt_annotations(
         argmax_overlaps_inds: ordered overlaps indices, (N, )
     """
     # (N, K)
-    overlaps = compute_overlap(anchors.astype(np.float64), annotations.astype(np.float64))
+    overlaps = compute_overlap(anchors.astype(np.float64),
+                               annotations.astype(np.float64))
     # (N, )
     argmax_overlaps_inds = np.argmax(overlaps, axis=1)
     # (N, )
@@ -175,16 +176,20 @@ def layer_shapes(image_shape, model):
         A dictionary mapping layer names to image shapes.
     """
     shape = {
-        model.layers[0].name: (None,) + image_shape,
+        model.layers[0].name: (None, ) + image_shape,
     }
 
     for layer in model.layers[1:]:
         nodes = layer._inbound_nodes
         for node in nodes:
-            input_shapes = [shape[inbound_layer.name] for inbound_layer in node.inbound_layers]
+            input_shapes = [
+                shape[inbound_layer.name]
+                for inbound_layer in node.inbound_layers
+            ]
             if not input_shapes:
                 continue
-            shape[layer.name] = layer.compute_output_shape(input_shapes[0] if len(input_shapes) == 1 else input_shapes)
+            shape[layer.name] = layer.compute_output_shape(
+                input_shapes[0] if len(input_shapes) == 1 else input_shapes)
 
     return shape
 
@@ -193,10 +198,11 @@ def make_shapes_callback(model):
     """
     Make a function for getting the shape of the pyramid levels.
     """
-
     def get_shapes(image_shape, pyramid_levels):
         shape = layer_shapes(image_shape, model)
-        image_shapes = [shape["P{}".format(level)][1:3] for level in pyramid_levels]
+        image_shapes = [
+            shape["P{}".format(level)][1:3] for level in pyramid_levels
+        ]
         return image_shapes
 
     return get_shapes
@@ -214,15 +220,15 @@ def guess_shapes(image_shape, pyramid_levels):
         A list of image shapes at each pyramid level.
     """
     image_shape = np.array(image_shape[:2])
-    image_shapes = [(image_shape + 2 ** x - 1) // (2 ** x) for x in pyramid_levels]
+    image_shapes = [(image_shape + 2**x - 1) // (2**x) for x in pyramid_levels]
     return image_shapes
 
 
 def anchors_for_shape(
-        image_shape,
-        pyramid_levels=None,
-        anchor_params=None,
-        shapes_callback=None,
+    image_shape,
+    pyramid_levels=None,
+    anchor_params=None,
+    shapes_callback=None,
 ):
     """
     Generators anchors for a given shape.
@@ -250,12 +256,11 @@ def anchors_for_shape(
     # compute anchors over all pyramid levels
     all_anchors = np.zeros((0, 4), dtype=np.float32)
     for idx, p in enumerate(pyramid_levels):
-        anchors = generate_anchors(
-            base_size=anchor_params.sizes[idx],
-            ratios=anchor_params.ratios,
-            scales=anchor_params.scales
-        )
-        shifted_anchors = shift(feature_map_shapes[idx], anchor_params.strides[idx], anchors)
+        anchors = generate_anchors(base_size=anchor_params.sizes[idx],
+                                   ratios=anchor_params.ratios,
+                                   scales=anchor_params.scales)
+        shifted_anchors = shift(feature_map_shapes[idx],
+                                anchor_params.strides[idx], anchors)
         all_anchors = np.append(all_anchors, shifted_anchors, axis=0)
 
     return all_anchors.astype(np.float32)
@@ -277,14 +282,13 @@ def shift(feature_map_shape, stride, anchors):
 
     shift_x, shift_y = np.meshgrid(shift_x, shift_y)
 
-    shifts = np.vstack((
-        shift_x.ravel(), shift_y.ravel(),
-        shift_x.ravel(), shift_y.ravel()
-    )).transpose()
+    shifts = np.vstack((shift_x.ravel(), shift_y.ravel(), shift_x.ravel(),
+                        shift_y.ravel())).transpose()
 
     A = anchors.shape[0]
     K = shifts.shape[0]
-    all_anchors = (anchors.reshape((1, A, 4)) + shifts.reshape((1, K, 4)).transpose((1, 0, 2)))
+    all_anchors = (anchors.reshape((1, A, 4)) + shifts.reshape(
+        (1, K, 4)).transpose((1, 0, 2)))
     all_anchors = all_anchors.reshape((K * A, 4))
 
     return all_anchors
@@ -313,7 +317,8 @@ def generate_anchors(base_size=16, ratios=None, scales=None):
     # initialize output anchors
     anchors = np.zeros((num_anchors, 4))
 
-    anchors[:, 2:] = base_size * np.tile(np.repeat(scales, len(ratios))[None], (2, 1)).T
+    anchors[:, 2:] = base_size * np.tile(
+        np.repeat(scales, len(ratios))[None], (2, 1)).T
 
     areas = anchors[:, 2] * anchors[:, 3]
 

@@ -74,8 +74,7 @@ def create_callbacks(training_model, prediction_model, validation_generator,
 
     if args.evaluation and validation_generator:
         from eval.pascal import Evaluate
-        evaluation = Evaluate(validation_generator,
-                              prediction_model)
+        evaluation = Evaluate(validation_generator, prediction_model)
         callbacks.append(evaluation)
 
     # save the model
@@ -121,8 +120,7 @@ def create_generators(args):
     common_args = {
         'batch_size': args.batch_size,
         'phi': args.phi,
-        'detect_text': args.detect_text,
-        'detect_quadrangle': args.detect_quadrangle
+        'detect_text': args.detect_text
     }
 
     # create random transform generator for augmenting training data
@@ -199,10 +197,6 @@ def parse_args(args):
         '--val-annotations-path',
         help=
         'Path to CSV file containing annotations for validation (optional).')
-    parser.add_argument('--detect-quadrangle',
-                        help='If to detect quadrangle.',
-                        action='store_true',
-                        default=False)
     parser.add_argument('--detect-text',
                         help='If is text detection task.',
                         action='store_true',
@@ -293,13 +287,11 @@ def main(args=None):
 
     # K.set_session(get_session())
 
-    model, prediction_model = efficientdet(
-        args.phi,
-        num_classes=num_classes,
-        num_anchors=num_anchors,
-        weighted_bifpn=args.weighted_bifpn,
-        freeze_bn=args.freeze_bn,
-        detect_quadrangle=args.detect_quadrangle)
+    model, prediction_model = efficientdet(args.phi,
+                                           num_classes=num_classes,
+                                           num_anchors=num_anchors,
+                                           weighted_bifpn=args.weighted_bifpn,
+                                           freeze_bn=args.freeze_bn)
     # load pretrained weights
     if args.snapshot:
         if args.snapshot == 'imagenet':
@@ -331,10 +323,8 @@ def main(args=None):
     model.compile(
         optimizer=Adam(lr=1e-3),
         loss={
-            'regression':
-            smooth_l1_quad() if args.detect_quadrangle else smooth_l1(),
-            'classification':
-            focal()
+            'regression': smooth_l1(),
+            'classification': focal()
         },
     )
 
