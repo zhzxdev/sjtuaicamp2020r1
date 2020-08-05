@@ -1,0 +1,102 @@
+{
+  "model_algorithm": "object_detection_v2",
+  "model_source": "algos",
+  "tunable": false,
+  "downloadable_flag": true,
+  "metrics": {
+    "f1": 0.006218018319267901,
+    "recall": 0.044725026935338974,
+    "precision": 0.003341273870319128,
+    "accuracy": 0.035841792664789776
+  },
+  "model_type": "TensorFlow",
+  "runtime": "tf1.13-python3.7-cpu",
+  "apis": [
+    {
+      "protocol": "https",
+      "url": "/",
+      "method": "post",
+      "request": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "images": {
+              "type": "file"
+            }
+          }
+        },
+        "Content-type": "multipart/form-data"
+      },
+      "response": {
+        "data": {
+          "type": "object",
+          "required": [
+            "detection_classes",
+            "detection_boxes",
+            "detection_scores"
+          ],
+          "properties": {
+            "detection_classes": {
+              "type": "array",
+              "item": {
+                "type": "string"
+              }
+            },
+            "detection_boxes": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number"
+                }
+              }
+            },
+            "detection_scores": {
+              "type": "number"
+            }
+          }
+        },
+        "Content-type": "multipart/form-data"
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "installer": "pip",
+      "packages": [
+        {
+          "package_name": "numpy",
+          "package_version": "1.17.0",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "h5py",
+          "package_version": "2.8.0",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "Pillow",
+          "package_version": "5.2.0",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "scipy",
+          "package_version": "1.2.1",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "resampy",
+          "package_version": "0.2.1",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "scikit-learn",
+          "package_version": "0.22.2",
+          "restraint": "EXACT"
+        }
+      ]
+    }
+  ]
+}

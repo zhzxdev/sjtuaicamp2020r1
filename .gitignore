@@ -108,3 +108,4 @@ dist
 
 .vscode
 .ipynb_checkpoints
+custom*.ipynb
