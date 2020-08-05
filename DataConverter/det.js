@@ -9,8 +9,8 @@ const argv = require('yargs').argv
 const root = path.resolve(__dirname, '..')
 const temp = path.join(root, 'Temp')
 // @ts-ignore
-const input = path.join(temp, argv.input || 'train_data_export')
-const output = path.join(temp, `data_${Date.now()}`)
+const input = path.join(temp, 'data_in')
+const output = path.join(temp, `data_det`)
 const output_img = path.join(output, 'img')
 const bar = new SingleBar({})
 const set_classes = new Set()

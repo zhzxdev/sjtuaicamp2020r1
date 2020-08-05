@@ -1,5 +1,5 @@
-train: ../ds_yolo/images/train
-val: ../ds_yolo/images/val
+train: ../Temp/data_det/images/train
+val: ../Temp/data_det/images/val
 
 # number of classes
 nc: 6

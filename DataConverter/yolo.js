@@ -11,8 +11,8 @@ const H = 720
 const root = path.resolve(__dirname, '..')
 const temp = path.join(root, 'Temp')
 // @ts-ignore
-const input = path.resolve(argv.input)
-const output = path.join(temp, `data_coco_out`)
+const input = path.join(temp, 'data_in')
+const output = path.join(temp, `data_yolo`)
 const bar = new SingleBar({})
 const classes = ['red_stop', 'green_go', 'yellow_back', 'pedestrian_crossing', 'speed_limited', 'speed_unlimited']
 const index = Object.create(null)
