@@ -1,6 +1,2 @@
-cd DataConverter
-npm i
-cd ..
-cd EfficientDet
-pip install -r requirements.txt
-python setup.py build_ext --inplace
+git config --global user.email i@zzs1.cn
+git config --global user.name ZhangZisu
