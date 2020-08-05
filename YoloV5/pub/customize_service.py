@@ -3,8 +3,10 @@ from collections import OrderedDict
 
 import torch.backends.cudnn as cudnn
 
-import models
-import utils
+from models import experimental
+from utils import datasets
+from utils import general
+from utils import torch_utils
 
 from model_service.tfserving_model_service import TfServingBaseService
 import torch
@@ -63,16 +65,16 @@ class ObjectDetectionService(TfServingBaseService):
         self.ori_imgs = data[self.input_image_key]
 
         # Initialize
-        device = utils.torch_utils.select_device(device)
+        device = torch_utils.select_device(device)
         half = device.type != 'cpu'  # half precision only supported on CUDA
 
         # Load model
-        model = models.experimental.attempt_load(self.model_path, map_location=device)  # load FP32 model
-        imgsz = utils.general.check_img_size(imgsz, s=model.stride.max())  # check img_size
+        model = experimental.attempt_load(self.model_path, map_location=device)  # load FP32 model
+        imgsz = general.check_img_size(imgsz, s=model.stride.max())  # check img_size
         if half:
             model.half()  # to FP16
 
-        dataset = utils.datasets.LoadImages(img, img_size=imgsz)
+        dataset = datasets.LoadImages(img, img_size=imgsz)
 
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
@@ -93,7 +95,7 @@ class ObjectDetectionService(TfServingBaseService):
             pred = model(img, augment=False)[0]
 
             # Apply NMS
-            pred = utils.general.non_max_suppression(pred, conf_thres, iou_thres, classes=None, agnostic=False)
+            pred = general.non_max_suppression(pred, conf_thres, iou_thres, classes=None, agnostic=False)
 
             # Process detections
             for i, det in enumerate(pred):  # detections per image
@@ -103,7 +105,7 @@ class ObjectDetectionService(TfServingBaseService):
                 # gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if det is not None and len(det):
                     # Rescale boxes from img_size to im0 size
-                    det[:, :4] = utils.general.scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                    det[:, :4] = general.scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
                     # Print results
                     for c in det[:, -1].unique():
