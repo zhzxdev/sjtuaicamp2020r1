@@ -112,3 +112,4 @@ tests/
 *test-dev*
 val2017*
 *.txt
+!requirements.txt
