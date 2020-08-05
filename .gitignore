@@ -107,3 +107,4 @@ dist
 !/Temp/.gitkeep
 
 .vscode
+.ipynb_checkpoints
