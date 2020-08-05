@@ -3,11 +3,10 @@ from collections import OrderedDict
 
 import torch.backends.cudnn as cudnn
 
-from models.experimental import *
-from utils.datasets import *
-from utils.general import *
+import models
+import utils
 
-from model_service.pytorch_model_service import PTServingBaseService
+from model_service.tfserving_model_service import TfServingBaseService
 import torch
 import time
 import log
@@ -17,12 +16,9 @@ import os
 logger = log.getLogger(__name__)
 
 
-class ObjectDetectionService(PTServingBaseService):
+class ObjectDetectionService(TfServingBaseService):
     def __init__(self, model_name, model_path):
-        self.obj_list = [
-            'red_stop', 'green_go', 'yellow_back', 'pedestrian_crossing',
-            'speed_limited', 'speed_unlimited'
-        ]
+        self.obj_list = ['red_stop', 'green_go', 'yellow_back', 'pedestrian_crossing', 'speed_limited', 'speed_unlimited']
         self.input_image_key = 'images'
         self.weights = './best.pt'
         self.model_path = os.path.join(os.path.dirname(__file__), self.weights)
@@ -71,13 +67,12 @@ class ObjectDetectionService(PTServingBaseService):
         half = device.type != 'cpu'  # half precision only supported on CUDA
 
         # Load model
-        model = attempt_load(self.model_path,
-                             map_location=device)  # load FP32 model
-        imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
+        model = models.experimental.attempt_load(self.model_path, map_location=device)  # load FP32 model
+        imgsz = utils.general.check_img_size(imgsz, s=model.stride.max())  # check img_size
         if half:
             model.half()  # to FP16
 
-        dataset = LoadImages(img, img_size=imgsz)
+        dataset = utils.datasets.LoadImages(img, img_size=imgsz)
 
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
@@ -85,8 +80,7 @@ class ObjectDetectionService(PTServingBaseService):
 
         # Run inference
         img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
-        _ = model(img.half() if half else img
-                  ) if device.type != 'cpu' else None  # run once
+        _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         result = []
         for path, img, im0s, vid_cap in dataset:
             img = torch.from_numpy(img).to(device)
@@ -99,11 +93,7 @@ class ObjectDetectionService(PTServingBaseService):
             pred = model(img, augment=False)[0]
 
             # Apply NMS
-            pred = non_max_suppression(pred,
-                                       conf_thres,
-                                       iou_thres,
-                                       classes=None,
-                                       agnostic=False)
+            pred = utils.general.non_max_suppression(pred, conf_thres, iou_thres, classes=None, agnostic=False)
 
             # Process detections
             for i, det in enumerate(pred):  # detections per image
@@ -113,8 +103,7 @@ class ObjectDetectionService(PTServingBaseService):
                 # gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if det is not None and len(det):
                     # Rescale boxes from img_size to im0 size
-                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4],
-                                              im0.shape).round()
+                    det[:, :4] = utils.general.scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
                     # Print results
                     for c in det[:, -1].unique():
@@ -148,12 +137,7 @@ class ObjectDetectionService(PTServingBaseService):
             # x1, y1, x2, y2 = data[j][:4].astype(np.int)
             obj = self.obj_list[data[j][5]]
             score = float(data[j][4])
-            out_boxes.append([
-                int(data[j][1]),
-                int(data[j][0]),
-                int(data[j][3]),
-                int(data[j][2])
-            ])
+            out_boxes.append([int(data[j][1]), int(data[j][0]), int(data[j][3]), int(data[j][2])])
             out_scores.append(score)
             out_classes.append(obj)
 
@@ -212,10 +196,8 @@ class ObjectDetectionService(PTServingBaseService):
         # if self.model_name + '_LatencyOverall' in MetricsManager.metrics:
         #     MetricsManager.metrics[self.model_name + '_LatencyOverall'].update(pre_time_in_ms + post_time_in_ms)
 
-        logger.info('latency: ' +
-                    str(pre_time_in_ms + infer_in_ms + post_time_in_ms) + 'ms')
-        data['latency_time'] = str(
-            round(pre_time_in_ms + infer_in_ms + post_time_in_ms, 1)) + ' ms'
+        logger.info('latency: ' + str(pre_time_in_ms + infer_in_ms + post_time_in_ms) + 'ms')
+        data['latency_time'] = str(round(pre_time_in_ms + infer_in_ms + post_time_in_ms, 1)) + ' ms'
         return data
 
 
@@ -227,3 +209,6 @@ class ObjectDetectionService(PTServingBaseService):
 #         for label in labels:
 #             label_map[label] = super_label
 #     return label_map
+
+if __name__ == "__main__":
+    pass
