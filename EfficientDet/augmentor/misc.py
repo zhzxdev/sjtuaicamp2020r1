@@ -55,22 +55,6 @@ def rotate(image, annotations, prob=0.5, border_value=(128, 128, 128)):
             new_bboxes.append([min_x, min_y, max_x, max_y])
         annotations['bboxes'] = np.array(new_bboxes, dtype=np.float32)
 
-        if 'quadrangles' in annotations and annotations['quadrangles'].shape[0] != 0:
-            quadrangles = annotations['quadrangles']
-            rotated_quadrangles = []
-            for quadrangle in quadrangles:
-                quadrangle = np.concatenate([quadrangle, np.ones((4, 1))], axis=-1)
-                rotated_quadrangle = M.dot(quadrangle.T).T[:, :2]
-                quadrangle = reorder_vertexes(rotated_quadrangle)
-                rotated_quadrangles.append(quadrangle)
-            quadrangles = np.stack(rotated_quadrangles)
-            annotations['quadrangles'] = quadrangles
-            xmin = np.min(quadrangles, axis=1)[:, 0]
-            ymin = np.min(quadrangles, axis=1)[:, 1]
-            xmax = np.max(quadrangles, axis=1)[:, 0]
-            ymax = np.max(quadrangles, axis=1)[:, 1]
-            bboxes = np.stack([xmin, ymin, xmax, ymax], axis=1)
-            annotations['bboxes'] = bboxes
     return image, annotations
 
 
@@ -188,23 +172,6 @@ def translate(image, annotations, prob=0.5, border_value=(128, 128, 128)):
             max_x, max_y = np.max(points, axis=1)[:2]
             new_bboxes.append([min_x, min_y, max_x, max_y])
         annotations['bboxes'] = np.array(new_bboxes).astype(np.float32)
-
-        if 'quadrangles' in annotations and annotations['quadrangles'].shape[0] != 0:
-            quadrangles = annotations['quadrangles']
-            translated_quadrangles = []
-            for quadrangle in quadrangles:
-                quadrangle = np.concatenate([quadrangle, np.ones((4, 1))], axis=-1)
-                translated_quadrangle = translation_matrix.dot(quadrangle.T).T[:, :2]
-                quadrangle = reorder_vertexes(translated_quadrangle)
-                translated_quadrangles.append(quadrangle)
-            quadrangles = np.stack(translated_quadrangles)
-            annotations['quadrangles'] = quadrangles
-            xmin = np.min(quadrangles, axis=1)[:, 0]
-            ymin = np.min(quadrangles, axis=1)[:, 1]
-            xmax = np.max(quadrangles, axis=1)[:, 0]
-            ymax = np.max(quadrangles, axis=1)[:, 1]
-            bboxes = np.stack([xmin, ymin, xmax, ymax], axis=1)
-            annotations['bboxes'] = bboxes
 
     return image, annotations
 
