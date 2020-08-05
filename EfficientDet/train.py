@@ -56,7 +56,8 @@ def get_session():
     return tf.Session(config=config)
 
 
-def create_callbacks(training_model, prediction_model, validation_generator, args):
+def create_callbacks(training_model, prediction_model, validation_generator,
+                     args):
     """
     Creates the callbacks to use during training.
 
@@ -71,26 +72,10 @@ def create_callbacks(training_model, prediction_model, validation_generator, arg
     """
     callbacks = []
 
-    tensorboard_callback = None
-
-    if args.tensorboard_dir:
-        if tf.version.VERSION > '2.0.0':
-            file_writer = tf.summary.create_file_writer(args.tensorboard_dir)
-            file_writer.set_as_default()
-        tensorboard_callback = keras.callbacks.TensorBoard(
-            log_dir=args.tensorboard_dir,
-            histogram_freq=0,
-            batch_size=args.batch_size,
-            write_graph=True,
-            write_grads=False,
-            write_images=False,
-            embeddings_freq=0,
-            embeddings_layer_names=None,
-            embeddings_metadata=None
-        )
-        callbacks.append(tensorboard_callback)
-
     if args.evaluation and validation_generator:
+        from eval.pascal import Evaluate
+        evaluation = Evaluate(validation_generator,
+                              prediction_model)
         callbacks.append(evaluation)
 
     # save the model
@@ -100,9 +85,9 @@ def create_callbacks(training_model, prediction_model, validation_generator, arg
         checkpoint = keras.callbacks.ModelCheckpoint(
             os.path.join(
                 args.snapshot_path,
-                f'{args.dataset_type}_{{epoch:02d}}_{{loss:.4f}}_{{val_loss:.4f}}.h5' if args.compute_val_loss
-                else f'{args.dataset_type}_{{epoch:02d}}_{{loss:.4f}}.h5'
-            ),
+                f'{args.dataset_type}_{{epoch:02d}}_{{loss:.4f}}_{{val_loss:.4f}}.h5'
+                if args.compute_val_loss else
+                f'{args.dataset_type}_{{epoch:02d}}_{{loss:.4f}}.h5'),
             verbose=1,
             save_weights_only=True,
             # save_best_only=True,
@@ -150,25 +135,22 @@ def create_generators(args):
 
     if args.dataset_type == 'csv':
         from generators.csv_ import CSVGenerator
-        train_generator = CSVGenerator(
-            args.annotations_path,
-            args.classes_path,
-            misc_effect=misc_effect,
-            visual_effect=visual_effect,
-            **common_args
-        )
+        train_generator = CSVGenerator(args.annotations_path,
+                                       args.classes_path,
+                                       misc_effect=misc_effect,
+                                       visual_effect=visual_effect,
+                                       **common_args)
 
         if args.val_annotations_path:
-            validation_generator = CSVGenerator(
-                args.val_annotations_path,
-                args.classes_path,
-                shuffle_groups=False,
-                **common_args
-            )
+            validation_generator = CSVGenerator(args.val_annotations_path,
+                                                args.classes_path,
+                                                shuffle_groups=False,
+                                                **common_args)
         else:
             validation_generator = None
     else:
-        raise ValueError('Invalid data type received: {}'.format(args.dataset_type))
+        raise ValueError('Invalid data type received: {}'.format(
+            args.dataset_type))
 
     return train_generator, validation_generator
 
@@ -186,11 +168,11 @@ def check_args(parsed_args):
         parsed_args
     """
 
-    if parsed_args.gpu and parsed_args.batch_size < len(parsed_args.gpu.split(',')):
+    if parsed_args.gpu and parsed_args.batch_size < len(
+            parsed_args.gpu.split(',')):
         raise ValueError(
-            "Batch size ({}) must be equal to or higher than the number of GPUs ({})".format(parsed_args.batch_size,
-                                                                                             len(parsed_args.gpu.split(
-                                                                                                 ','))))
+            "Batch size ({}) must be equal to or higher than the number of GPUs ({})"
+            .format(parsed_args.batch_size, len(parsed_args.gpu.split(','))))
 
     return parsed_args
 
@@ -200,45 +182,95 @@ def parse_args(args):
     Parse the arguments.
     """
     today = str(date.today())
-    parser = argparse.ArgumentParser(description='Simple training script for training a RetinaNet network.')
-    subparsers = parser.add_subparsers(help='Arguments for specific dataset types.', dest='dataset_type')
+    parser = argparse.ArgumentParser(
+        description='Simple training script for training a RetinaNet network.')
+    subparsers = parser.add_subparsers(
+        help='Arguments for specific dataset types.', dest='dataset_type')
     subparsers.required = True
 
     csv_parser = subparsers.add_parser('csv')
-    csv_parser.add_argument('annotations_path', help='Path to CSV file containing annotations for training.')
-    csv_parser.add_argument('classes_path', help='Path to a CSV file containing class label mapping.')
-    csv_parser.add_argument('--val-annotations-path',
-                            help='Path to CSV file containing annotations for validation (optional).')
-    parser.add_argument('--detect-quadrangle', help='If to detect quadrangle.', action='store_true', default=False)
-    parser.add_argument('--detect-text', help='If is text detection task.', action='store_true', default=False)
+    csv_parser.add_argument(
+        'annotations_path',
+        help='Path to CSV file containing annotations for training.')
+    csv_parser.add_argument(
+        'classes_path',
+        help='Path to a CSV file containing class label mapping.')
+    csv_parser.add_argument(
+        '--val-annotations-path',
+        help=
+        'Path to CSV file containing annotations for validation (optional).')
+    parser.add_argument('--detect-quadrangle',
+                        help='If to detect quadrangle.',
+                        action='store_true',
+                        default=False)
+    parser.add_argument('--detect-text',
+                        help='If is text detection task.',
+                        action='store_true',
+                        default=False)
 
     parser.add_argument('--snapshot', help='Resume training from a snapshot.')
-    parser.add_argument('--freeze-backbone', help='Freeze training of backbone layers.', action='store_true')
-    parser.add_argument('--freeze-bn', help='Freeze training of BatchNormalization layers.', action='store_true')
-    parser.add_argument('--weighted-bifpn', help='Use weighted BiFPN', action='store_true')
+    parser.add_argument('--freeze-backbone',
+                        help='Freeze training of backbone layers.',
+                        action='store_true')
+    parser.add_argument('--freeze-bn',
+                        help='Freeze training of BatchNormalization layers.',
+                        action='store_true')
+    parser.add_argument('--weighted-bifpn',
+                        help='Use weighted BiFPN',
+                        action='store_true')
 
-    parser.add_argument('--batch-size', help='Size of the batches.', default=1, type=int)
-    parser.add_argument('--phi', help='Hyper parameter phi', default=0, type=int, choices=(0, 1, 2, 3, 4, 5, 6))
-    parser.add_argument('--gpu', help='Id of the GPU to use (as reported by nvidia-smi).')
-    parser.add_argument('--epochs', help='Number of epochs to train.', type=int, default=50)
-    parser.add_argument('--steps', help='Number of steps per epoch.', type=int, default=10000)
-    parser.add_argument('--snapshot-path',
-                        help='Path to store snapshots of models during training',
-                        default='checkpoints/{}'.format(today))
-    parser.add_argument('--tensorboard-dir', help='Log directory for Tensorboard output',
-                        default='logs/{}'.format(today))
-    parser.add_argument('--no-snapshots', help='Disable saving snapshots.', dest='snapshots', action='store_false')
-    parser.add_argument('--no-evaluation', help='Disable per epoch evaluation.', dest='evaluation',
+    parser.add_argument('--batch-size',
+                        help='Size of the batches.',
+                        default=1,
+                        type=int)
+    parser.add_argument('--phi',
+                        help='Hyper parameter phi',
+                        default=0,
+                        type=int,
+                        choices=(0, 1, 2, 3, 4, 5, 6))
+    parser.add_argument(
+        '--gpu', help='Id of the GPU to use (as reported by nvidia-smi).')
+    parser.add_argument('--epochs',
+                        help='Number of epochs to train.',
+                        type=int,
+                        default=50)
+    parser.add_argument('--steps',
+                        help='Number of steps per epoch.',
+                        type=int,
+                        default=10000)
+    parser.add_argument(
+        '--snapshot-path',
+        help='Path to store snapshots of models during training',
+        default='checkpoints/{}'.format(today))
+    parser.add_argument('--no-snapshots',
+                        help='Disable saving snapshots.',
+                        dest='snapshots',
                         action='store_false')
-    parser.add_argument('--random-transform', help='Randomly transform image and annotations.', action='store_true')
-    parser.add_argument('--compute-val-loss', help='Compute validation loss during training', dest='compute_val_loss',
+    parser.add_argument('--no-evaluation',
+                        help='Disable per epoch evaluation.',
+                        dest='evaluation',
+                        action='store_false')
+    parser.add_argument('--random-transform',
+                        help='Randomly transform image and annotations.',
+                        action='store_true')
+    parser.add_argument('--compute-val-loss',
+                        help='Compute validation loss during training',
+                        dest='compute_val_loss',
                         action='store_true')
 
     # Fit generator arguments
-    parser.add_argument('--multiprocessing', help='Use multiprocessing in fit_generator.', action='store_true')
-    parser.add_argument('--workers', help='Number of generator workers.', type=int, default=1)
-    parser.add_argument('--max-queue-size', help='Queue length for multiprocessing workers in fit_generator.', type=int,
-                        default=10)
+    parser.add_argument('--multiprocessing',
+                        help='Use multiprocessing in fit_generator.',
+                        action='store_true')
+    parser.add_argument('--workers',
+                        help='Number of generator workers.',
+                        type=int,
+                        default=1)
+    parser.add_argument(
+        '--max-queue-size',
+        help='Queue length for multiprocessing workers in fit_generator.',
+        type=int,
+        default=10)
     print(vars(parser.parse_args(args)))
     return check_args(parser.parse_args(args))
 
@@ -261,18 +293,19 @@ def main(args=None):
 
     # K.set_session(get_session())
 
-    model, prediction_model = efficientdet(args.phi,
-                                           num_classes=num_classes,
-                                           num_anchors=num_anchors,
-                                           weighted_bifpn=args.weighted_bifpn,
-                                           freeze_bn=args.freeze_bn,
-                                           detect_quadrangle=args.detect_quadrangle
-                                           )
+    model, prediction_model = efficientdet(
+        args.phi,
+        num_classes=num_classes,
+        num_anchors=num_anchors,
+        weighted_bifpn=args.weighted_bifpn,
+        freeze_bn=args.freeze_bn,
+        detect_quadrangle=args.detect_quadrangle)
     # load pretrained weights
     if args.snapshot:
         if args.snapshot == 'imagenet':
             model_name = 'efficientnet-b{}'.format(args.phi)
-            file_name = '{}_weights_tf_dim_ordering_tf_kernels_autoaugment_notop.h5'.format(model_name)
+            file_name = '{}_weights_tf_dim_ordering_tf_kernels_autoaugment_notop.h5'.format(
+                model_name)
             file_hash = WEIGHTS_HASHES[model_name][1]
             weights_path = keras.utils.get_file(file_name,
                                                 BASE_WEIGHTS_PATH + file_name,
@@ -290,13 +323,20 @@ def main(args=None):
             model.layers[i].trainable = False
 
     if args.gpu and len(args.gpu.split(',')) > 1:
-        model = keras.utils.multi_gpu_model(model, gpus=list(map(int, args.gpu.split(','))))
+        model = keras.utils.multi_gpu_model(model,
+                                            gpus=list(
+                                                map(int, args.gpu.split(','))))
 
     # compile model
-    model.compile(optimizer=Adam(lr=1e-3), loss={
-        'regression': smooth_l1_quad() if args.detect_quadrangle else smooth_l1(),
-        'classification': focal()
-    }, )
+    model.compile(
+        optimizer=Adam(lr=1e-3),
+        loss={
+            'regression':
+            smooth_l1_quad() if args.detect_quadrangle else smooth_l1(),
+            'classification':
+            focal()
+        },
+    )
 
     # print(model.summary())
 
@@ -311,21 +351,21 @@ def main(args=None):
     if not args.compute_val_loss:
         validation_generator = None
     elif args.compute_val_loss and validation_generator is None:
-        raise ValueError('When you have no validation data, you should not specify --compute-val-loss.')
+        raise ValueError(
+            'When you have no validation data, you should not specify --compute-val-loss.'
+        )
 
     # start training
-    return model.fit(
-        train_generator,
-        steps_per_epoch=args.steps,
-        initial_epoch=0,
-        epochs=args.epochs,
-        verbose=1,
-        callbacks=callbacks,
-        workers=args.workers,
-        use_multiprocessing=args.multiprocessing,
-        max_queue_size=args.max_queue_size,
-        validation_data=validation_generator
-    )
+    return model.fit_generator(generator=train_generator,
+                               steps_per_epoch=args.steps,
+                               initial_epoch=0,
+                               epochs=args.epochs,
+                               verbose=1,
+                               callbacks=callbacks,
+                               workers=args.workers,
+                               use_multiprocessing=args.multiprocessing,
+                               max_queue_size=args.max_queue_size,
+                               validation_data=validation_generator)
 
 
 if __name__ == '__main__':

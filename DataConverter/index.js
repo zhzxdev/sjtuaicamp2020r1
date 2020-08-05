@@ -8,7 +8,8 @@ const argv = require('yargs').argv
 
 const root = path.resolve(__dirname, '..')
 const temp = path.join(root, 'Temp')
-const input = path.join(temp, 'train_data_export')
+// @ts-ignore
+const input = path.join(temp, argv.input || 'train_data_export')
 const output = path.join(temp, `data_${Date.now()}`)
 const output_img = path.join(output, 'img')
 const bar = new SingleBar({})
@@ -66,8 +67,8 @@ try {
   console.log('Total images', names.length)
   // @ts-ignore
   const val = 'val' in argv ? parseFloat(argv.val) : 1
-  const data_count = Math.floor(val * names.length)
-  const val_count = names.length - data_count
+  const val_count = Math.floor(val * names.length)
+  const data_count = names.length - val_count
   console.log(`Data / Val = ${data_count} / ${val_count}`)
   const data = names.splice(0, data_count)
   fs.writeFileSync(path.join(output, 'labels.csv'), generateLabeling(data))

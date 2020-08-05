@@ -17,8 +17,11 @@ class CosineAnnealingScheduler(Callback):
     def on_batch_end(self, batch, logs):
         if self.iteration_id > self.start_iteration:
             # (1, 0)
-            cosine_decay = 0.5 * (1 + np.cos(np.pi * (self.cycle_iteration_id / self.cycle_iterations)))
-            decayed_lr = (self.max_lr - self.min_lr) * cosine_decay + self.min_lr
+            cosine_decay = 0.5 * (
+                1 + np.cos(np.pi *
+                           (self.cycle_iteration_id / self.cycle_iterations)))
+            decayed_lr = (self.max_lr -
+                          self.min_lr) * cosine_decay + self.min_lr
             K.set_value(self.model.optimizer.lr, decayed_lr)
             if self.cycle_iteration_id == self.cycle_iterations:
                 self.cycle_iteration_id = 0
@@ -63,7 +66,8 @@ class LinearWarmUpScheduler(Callback):
 
     def on_batch_begin(self, batch, logs):
         if self.iteration_id < self.iterations:
-            lr = (self.max_lr - self.min_lr) / self.iterations * (self.iteration_id + 1) + self.min_lr
+            lr = (self.max_lr - self.min_lr) / self.iterations * (
+                self.iteration_id + 1) + self.min_lr
             K.set_value(self.model.optimizer.lr, lr)
         self.iteration_id += 1
         self.lrs.append(K.get_value(self.model.optimizer.lr))
