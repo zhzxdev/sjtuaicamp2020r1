@@ -101,16 +101,12 @@ class ObjectDetectionService(TfServingBaseService):
 
             # Process detections
             for i, det in enumerate(pred):  # detections per image
-                p, s, im0 = path, '', im0s
-
-                s += '%gx%g ' % img.shape[2:]  # print string
+                p, im0 = path, im0s
                 # gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if det is not None and len(det):
                     # Rescale boxes from img_size to im0 size
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-
                     for i in range(det.size()[0]):
-
                         xmin = (det[i][0].item())
                         ymin = (det[i][1].item())
                         xmax = (det[i][2].item())
@@ -134,11 +130,9 @@ class ObjectDetectionService(TfServingBaseService):
         out_boxes = []
         for j in range(len(data)):
             # x1, y1, x2, y2 = data[j][:4].astype(np.int)
-            obj = self.obj_list[data[j][5]]
-            score = float(data[j][4])
-            out_boxes.append([int(data[j][1]), int(data[j][0]), int(data[j][3]), int(data[j][2])])
-            out_scores.append(score)
-            out_classes.append(obj)
+            out_boxes.append([str(int(data[j][1])), str(int(data[j][0])), str(int(data[j][3])), str(int(data[j][2]))])
+            out_scores.append(str(data[j][4]))
+            out_classes.append(self.obj_list[data[j][5]])
 
         # detection_class_names = []
         # for class_id in out_classes:
