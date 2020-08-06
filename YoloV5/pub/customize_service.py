@@ -3,10 +3,10 @@ from collections import OrderedDict
 
 import torch.backends.cudnn as cudnn
 
-from models import experimental
-from utils import datasets
-from utils import general
-from utils import torch_utils
+from models.experimental import attempt_load
+from utils.datasets import LoadImages
+from utils.general import check_img_size, check_img_size, non_max_suppression, scale_coords
+from utils.torch_utils import select_device
 
 from model_service.tfserving_model_service import TfServingBaseService
 import torch
@@ -65,16 +65,16 @@ class ObjectDetectionService(TfServingBaseService):
         self.ori_imgs = data[self.input_image_key]
 
         # Initialize
-        device = torch_utils.select_device(device)
+        device = select_device(device)
         half = device.type != 'cpu'  # half precision only supported on CUDA
 
         # Load model
-        model = experimental.attempt_load(self.model_path, map_location=device)  # load FP32 model
-        imgsz = general.check_img_size(imgsz, s=model.stride.max())  # check img_size
+        model = attempt_load(self.model_path, map_location=device)  # load FP32 model
+        imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
         if half:
             model.half()  # to FP16
 
-        dataset = datasets.LoadImages(img, img_size=imgsz)
+        dataset = LoadImages(img, img_size=imgsz)
 
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
@@ -95,7 +95,7 @@ class ObjectDetectionService(TfServingBaseService):
             pred = model(img, augment=False)[0]
 
             # Apply NMS
-            pred = general.non_max_suppression(pred, conf_thres, iou_thres, classes=None, agnostic=False)
+            pred = non_max_suppression(pred, conf_thres, iou_thres, classes=None, agnostic=False)
 
             # Process detections
             for i, det in enumerate(pred):  # detections per image
@@ -105,7 +105,7 @@ class ObjectDetectionService(TfServingBaseService):
                 # gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
                 if det is not None and len(det):
                     # Rescale boxes from img_size to im0 size
-                    det[:, :4] = general.scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
                     # Print results
                     for c in det[:, -1].unique():
