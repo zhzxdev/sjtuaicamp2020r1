@@ -109,3 +109,5 @@ dist
 .vscode
 .ipynb_checkpoints
 custom*.ipynb
+custom*.sh
+
