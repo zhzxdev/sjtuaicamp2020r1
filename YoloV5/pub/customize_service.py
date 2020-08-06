@@ -4,9 +4,9 @@ from collections import OrderedDict
 import torch.backends.cudnn as cudnn
 
 from models.experimental import attempt_load
-from utils.datasets import LoadImages
-from utils.general import check_img_size, check_img_size, non_max_suppression, scale_coords
-from utils.torch_utils import select_device
+from fuckutils.datasets import LoadImages
+from fuckutils.general import check_img_size, check_img_size, non_max_suppression, scale_coords
+from fuckutils.torch_utils import select_device
 
 from model_service.tfserving_model_service import TfServingBaseService
 import torch
