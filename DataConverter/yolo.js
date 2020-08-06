@@ -80,12 +80,19 @@ try {
     generate('val', val_names)
   } else {
     const val = 'val' in argv ? parseFloat(argv.val) : 1
-    const val_count = Math.floor(val * names.length)
-    const data_count = names.length - val_count
-    console.log(`Data / Val = ${data_count} / ${val_count}`)
-    const data = names.splice(0, data_count)
-    generate('train', data)
-    generate('val', names)
+    if ('repeat' in argv) {
+      const vals = names.filter(() => Math.random() < val)
+      console.log(`Data / Val = ${names.length} / ${vals.length}`)
+      generate('train', names)
+      generate('val', vals)
+    } else {
+      const val_count = Math.floor(val * names.length)
+      const data_count = names.length - val_count
+      console.log(`Data / Val = ${data_count} / ${val_count}`)
+      const data = names.splice(0, data_count)
+      generate('train', data)
+      generate('val', names)
+    }
   }
 } catch (e) {
   console.error(e)
