@@ -15,6 +15,9 @@ import log
 import numpy as np
 import os
 
+from pathlib import Path
+import shutil
+
 logger = log.getLogger(__name__)
 
 
@@ -43,12 +46,17 @@ class ObjectDetectionService(TfServingBaseService):
         # self.label_map = parse_classify_rule(os.path.join(os.path.dirname(__file__), 'classify_rule.json'))
 
     def _preprocess(self, data):
+        shutil.rmtree('/tmp/fuck', True)
+        Path("/tmp/fuck").mkdir(parents=True, exist_ok=True)
+
         preprocessed_data = {}
         print(data)
         for k, v in data.items():
             for file_name, file_content in v.items():
                 # img = Image.open(file_content)
                 # img = self.transforms(img)
+                with open(Path.joinpath("/tmp/fuck", file_name), "wb") as f:
+                    f.write(file_content.getbuffer())
                 print(file_name)
                 print(file_content)
                 preprocessed_data[k] = file_content
@@ -59,10 +67,7 @@ class ObjectDetectionService(TfServingBaseService):
         device = 'cpu'
         conf_thres = 0.4
         iou_thres = 0.01
-        # print(data)
-        img = data[self.input_image_key]
-        # print(img)
-        self.ori_imgs = data[self.input_image_key]
+        print(data)
 
         # Initialize
         device = select_device(device)
@@ -74,15 +79,12 @@ class ObjectDetectionService(TfServingBaseService):
         if half:
             model.half()  # to FP16
 
-        dataset = LoadImages(img, img_size=imgsz)
+        dataset = LoadImages('/tmp/fuck', img_size=imgsz)
 
         # Get names and colors
         names = model.module.names if hasattr(model, 'module') else model.names
         # colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
 
-        # Run inference
-        img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
-        _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         result = []
         for path, img, im0s, vid_cap in dataset:
             img = torch.from_numpy(img).to(device)
