@@ -65,7 +65,7 @@ class ObjectDetectionService(TfServingBaseService):
     def _inference(self, data):
         imgsz = 960
         device = 'cpu'
-        conf_thres = 0.7
+        conf_thres = 0.5
         iou_thres = 0.01
         print(data)
 
