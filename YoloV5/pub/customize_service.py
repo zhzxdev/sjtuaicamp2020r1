@@ -27,7 +27,7 @@ class ObjectDetectionService(TfServingBaseService):
         self.input_image_key = 'images'
         self.weights = './best.pt'
         self.model_path = os.path.join(os.path.dirname(__file__), self.weights)
-        print("init completed")
+        print('init completed')
         # make sure these files exist
         # self.compound_coef = 0
         # force_input_size = None  # set None to use default size
@@ -47,7 +47,7 @@ class ObjectDetectionService(TfServingBaseService):
 
     def _preprocess(self, data):
         shutil.rmtree('/tmp/fuck', True)
-        Path("/tmp/fuck").mkdir(parents=True, exist_ok=True)
+        Path('/tmp/fuck').mkdir(parents=True, exist_ok=True)
 
         preprocessed_data = {}
         print(data)
@@ -55,7 +55,7 @@ class ObjectDetectionService(TfServingBaseService):
             for file_name, file_content in v.items():
                 # img = Image.open(file_content)
                 # img = self.transforms(img)
-                with open(Path.joinpath("/tmp/fuck", file_name), "wb") as f:
+                with open(os.path.join('/tmp/fuck', file_name), 'wb') as f:
                     f.write(file_content.getbuffer())
                 print(file_name)
                 print(file_content)
@@ -65,7 +65,7 @@ class ObjectDetectionService(TfServingBaseService):
     def _inference(self, data):
         imgsz = 960
         device = 'cpu'
-        conf_thres = 0.4
+        conf_thres = 0.7
         iou_thres = 0.01
         print(data)
 
@@ -108,11 +108,6 @@ class ObjectDetectionService(TfServingBaseService):
                 if det is not None and len(det):
                     # Rescale boxes from img_size to im0 size
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-
-                    # Print results
-                    for c in det[:, -1].unique():
-                        n = (det[:, -1] == c).sum()  # detections per class
-                        s += '%g %ss, ' % (n, names[int(c)])  # add to string
 
                     for i in range(det.size()[0]):
 
@@ -214,5 +209,5 @@ class ObjectDetectionService(TfServingBaseService):
 #             label_map[label] = super_label
 #     return label_map
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     pass

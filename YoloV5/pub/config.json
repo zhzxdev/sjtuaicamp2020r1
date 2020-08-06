@@ -1,0 +1,115 @@
+{
+  "model_algorithm": "object_detection_v2",
+  "model_source": "algos",
+  "tunable": false,
+  "downloadable_flag": true,
+  "metrics": {
+    "f1": 0,
+    "recall": 0,
+    "precision": 0,
+    "accuracy": 0
+  },
+  "model_type": "TensorFlow",
+  "runtime": "tf1.13-python3.7-cpu",
+  "apis": [
+    {
+      "protocol": "https",
+      "url": "/",
+      "method": "post",
+      "request": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "images": {
+              "type": "file"
+            }
+          }
+        },
+        "Content-type": "multipart/form-data"
+      },
+      "response": {
+        "data": {
+          "type": "object",
+          "required": [
+            "detection_classes",
+            "detection_boxes",
+            "detection_scores"
+          ],
+          "properties": {
+            "detection_classes": {
+              "type": "array",
+              "item": {
+                "type": "string"
+              }
+            },
+            "detection_boxes": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number"
+                }
+              }
+            },
+            "detection_scores": {
+              "type": "number"
+            }
+          }
+        },
+        "Content-type": "multipart/form-data"
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "installer": "pip",
+      "packages": [
+        {
+          "package_name": "numpy",
+          "package_version": "1.18.5",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "Pillow",
+          "package_version": "5.2.0",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "scipy",
+          "package_version": "1.4.1",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "torch",
+          "package_version": "1.6.0",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "torchvision",
+          "package_version": "0.7.0",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "opencv-python-headless"
+        },
+        {
+          "package_name": "matplotlib",
+          "package_version": "3.2.2",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "PyYAML",
+          "package_version": "5.3",
+          "restraint": "EXACT"
+        },
+        {
+          "package_name": "tqdm",
+          "package_version": "4.41.0",
+          "restraint": "EXACT"
+        }
+      ]
+    }
+  ]
+}
