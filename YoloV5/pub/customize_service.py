@@ -134,18 +134,9 @@ class ObjectDetectionService(TfServingBaseService):
             out_scores.append(str(data[j][4]))
             out_classes.append(self.obj_list[data[j][5]])
 
-        # detection_class_names = []
-        # for class_id in out_classes:
-        #     class_name = self.obj_list[int(class_id)]
-        #     class_name = self.label_map[class_name] + '/' + class_name
-        #     detection_class_names.append(class_name)
-        out_boxes_list = []
-        for box in out_boxes:
-            out_boxes_list.append([round(float(v), 1) for v in box])
-
         result['detection_classes'] = out_classes
         result['detection_scores'] = out_scores
-        result['detection_boxes'] = out_boxes_list
+        result['detection_boxes'] = out_boxes
         return result
 
     def inference(self, data):
