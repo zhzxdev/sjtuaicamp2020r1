@@ -8,7 +8,7 @@ from fuckutils.datasets import LoadImages
 from fuckutils.general import check_img_size, check_img_size, non_max_suppression, scale_coords
 from fuckutils.torch_utils import select_device
 
-from model_service.tfserving_model_service import TfServingBaseService
+from model_service.pytorch_model_service import PTServingBaseService
 import torch
 import time
 import log
@@ -21,7 +21,7 @@ import shutil
 logger = log.getLogger(__name__)
 
 
-class ObjectDetectionService(TfServingBaseService):
+class ObjectDetectionService(PTServingBaseService):
     def __init__(self, model_name, model_path):
         self.obj_list = ['red_stop', 'green_go', 'yellow_back', 'pedestrian_crossing', 'speed_limited', 'speed_unlimited']
         self.input_image_key = 'images'
