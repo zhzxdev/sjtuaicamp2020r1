@@ -1,4 +1,4 @@
-# QingZhen Net
+# QingZheng Net
 
 ```
 Temp/data_in    : exported dataset from ModelArts
